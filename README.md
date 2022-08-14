@@ -1,5 +1,8 @@
 <h1 align="center">📁 Telegram File Proxy</h1>
 
+[![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/deptyped/telegram-file-proxy?logo=docker)](https://hub.docker.com/r/deptyped/telegram-file-proxy)
+
+
 ### Introduction
 
 Using this proxy you can provide files to users by `file_id` without exposing the bot's token. Extremely useful for the WebApp feature to use files from Telegram in your web app.
