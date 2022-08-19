@@ -101,7 +101,7 @@ func ServeFile(config *Config) router.Handle {
 }
 
 func main() {
-	config := loadFromEnv()
+	config := newConfig()
 
 	router := router.New()
 	router.GET("/:fileId", ServeFile(config))

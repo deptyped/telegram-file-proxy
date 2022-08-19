@@ -2,10 +2,11 @@
 
 [![Docker Image Size (latest semver)](https://img.shields.io/docker/image-size/deptyped/telegram-file-proxy?logo=docker)](https://hub.docker.com/r/deptyped/telegram-file-proxy)
 
-
 ### Introduction
 
-Using this proxy you can provide files to users by `file_id` without exposing the bot's token. Extremely useful for the WebApp feature to use files from Telegram in your web app.
+Using this proxy you can provide links to files to users by `file_id` without
+exposing the bot's token. Extremely useful for the WebApp feature to use files
+from Telegram in your web app.
 
 To get a link to a file, simply pass `file_id` of the file as the path:
 
@@ -23,13 +24,13 @@ http://telegram-file-proxy/<file_id>
 go mod download && go mod verify && go build -o proxy
 ```
 
-2. Set environment variables
-
-3. Run
+2. Run
 
 ```bash
-./proxy
+./proxy --bot-token 12345:ABCDEFGHIJKLMNOPQRSTUVWXYZ
 ```
+
+💡 Pro Tip! Run `./proxy --help` to see all available command line arguments.
 
 #### Using Docker Compose
 
@@ -43,6 +44,18 @@ services:
     environment:
       - BOT_TOKEN= # <-- place your bot token here
       - SERVER_PORT=80
+```
+
+Or configuration with command line arguments:
+
+```yaml
+version: "3"
+services:
+  telegram-file-proxy:
+    image: deptyped/telegram-file-proxy
+    ports:
+      - "8080:80"
+    command: --bot-token <place your bot token here> --server-port 80
 ```
 
 #### Using Docker Compose with a Local Bot API Server
@@ -75,12 +88,17 @@ services:
       - TELEGRAM_API_HASH= # <-- place your api hash here
 ```
 
-### Environment variables
+### Configuration
 
-| Variable    | Description                                                                                                            |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------- |
-| BOT_TOKEN   | Token                                                                                                                  |
-| SERVER_PORT | Server port (8080 by default)                                                                                          |
-| SERVER_HOST | Server hostname                                                                                                        |
-| API_ROOT    | Bot API Root (https://api.telegram.org by default)                                                                     |
-| API_LOCAL   | Allow providing files from the file system, useful when using a Local Bot API with the `--local` option (0 by default) |
+| ENV name    | CLI name    | Description                                                                                                            |
+| ----------- | ----------- | ---------------------------------------------------------------------------------------------------------------------- |
+| BOT_TOKEN   | bot-token   | Bot token                                                                                                              |
+| SERVER_PORT | server-port | Server port (8080 by default)                                                                                          |
+| SERVER_HOST | server-host | Server hostname                                                                                                        |
+| API_ROOT    | api-root    | Bot API Root (https://api.telegram.org by default)                                                                     |
+| API_LOCAL   | api-local   | Allow providing files from the file system, useful when using a Local Bot API with the `--local` option (0 by default) |
+
+The values from the command line arguments are loaded first. If there are no
+command line arguments, then the values are loaded from the environment
+variables. **Important!** You cannot use environment variables and command line
+arguments at the same time to configure.
