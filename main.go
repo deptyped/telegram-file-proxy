@@ -23,7 +23,7 @@ type GetFileResponse struct {
 	Result      File   `json:"result"`
 }
 
-func fetchFile(apiRoot string, botToken string, fileId string) (GetFileResponse, error) {
+func fetchFile(apiRoot, botToken, fileId string) (GetFileResponse, error) {
 	resp, err := http.Get(fmt.Sprintf("%s/bot%s/getFile?file_id=%s", apiRoot, botToken, fileId))
 	if err != nil {
 		return GetFileResponse{}, err
@@ -38,73 +38,59 @@ func fetchFile(apiRoot string, botToken string, fileId string) (GetFileResponse,
 	return fileInfo, nil
 }
 
-func modifyHeaders(h *http.Header) {
-	h.Del("Server")
-	// remove application/octet-stream mime type
-	h.Del("Content-Type")
-	// display media instead of downloading
-	h.Set("Content-Disposition", "inline")
-	// cache media for 1 year
-	h.Set("Cache-Control", "public, max-age=31536000")
+func modifyHeaders(headers *http.Header) {
+	headers.Del("Server")
+	headers.Del("Content-Type")                              // Remove default content type
+	headers.Set("Content-Disposition", "inline")             // Display media inline
+	headers.Set("Cache-Control", "public, max-age=31536000") // Cache for 1 year
 }
 
-func ServeFile(config *Config) router.Handle {
+func ServeFile(config *Config, cache *Cache) router.Handle {
 	remote, err := url.Parse(config.ApiRoot)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Invalid API root URL: %v", err)
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(remote)
-	proxy.ModifyResponse = func(r *http.Response) error {
-		modifyHeaders(&r.Header)
-
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		modifyHeaders(&resp.Header)
 		return nil
 	}
 
 	return router.Handle(func(res http.ResponseWriter, req *http.Request, params router.Params) {
 		fileId := params.ByName("fileId")
 
-		filePath, err := getFilePath(fileId)
-		if err != nil {
+		filePath, err := cache.getFilePath(fileId)
+		if err != nil { // Cache miss, fetch from API
 			fileInfo, err := fetchFile(config.ApiRoot, config.BotToken, fileId)
 			if err != nil {
-				log.Println(err)
-				res.WriteHeader(http.StatusInternalServerError)
+				log.Printf("Error fetching file: %v", err)
+				http.Error(res, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
 
-			if !fileInfo.Ok {
-				res.WriteHeader(fileInfo.ErrorCode)
-				return
-			}
-
-			cacheFilePath(fileId, fileInfo.Result.FileUniqueId, fileInfo.Result.FilePath)
-
+			cache.cacheFilePath(fileId, fileInfo.Result.FileUniqueId, fileInfo.Result.FilePath)
 			filePath = fileInfo.Result.FilePath
 		}
 
 		if config.IsApiLocal {
 			headers := res.Header()
 			modifyHeaders(&headers)
-
 			http.ServeFile(res, req, filePath)
 		} else {
-			url, _ := url.Parse(fmt.Sprintf("%s/file/bot%s/%s", config.ApiRoot, config.BotToken, filePath))
-
-			req.Host = url.Host
-			req.URL.Path = url.Path
-
+			req.URL, _ = url.Parse(fmt.Sprintf("%s/file/bot%s/%s", config.ApiRoot, config.BotToken, filePath))
+			req.Host = req.URL.Host
 			proxy.ServeHTTP(res, req)
 		}
-
 	})
 }
 
 func main() {
 	config := newConfig()
+	cache := newCache()
 
 	router := router.New()
-	router.GET("/:fileId", ServeFile(config))
+	router.GET("/:fileId", ServeFile(config, cache))
 
 	log.Printf("Server is running at %s\n", config.ServerAddr)
 	log.Fatal(http.ListenAndServe(config.ServerAddr, router))
