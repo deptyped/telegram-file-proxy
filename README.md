@@ -90,13 +90,14 @@ services:
 
 ### Configuration
 
-| ENV name    | CLI name    | Description                                                                                                            |
-| ----------- | ----------- | ---------------------------------------------------------------------------------------------------------------------- |
-| BOT_TOKEN   | bot-token   | Bot token                                                                                                              |
-| SERVER_PORT | server-port | Server port (8080 by default)                                                                                          |
-| SERVER_HOST | server-host | Server hostname                                                                                                        |
-| API_ROOT    | api-root    | Bot API Root (https://api.telegram.org by default)                                                                     |
-| API_LOCAL   | api-local   | Allow providing files from the file system, useful when using a Local Bot API with the `--local` option (0 by default) |
+| ENV name            | CLI name            | Description                                                                                                            |
+| ------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| BOT_TOKEN           | bot-token           | Bot token                                                                                                              |
+| SERVER_PORT         | server-port         | Server port (8080 by default)                                                                                          |
+| SERVER_HOST         | server-host         | Server hostname                                                                                                        |
+| API_ROOT            | api-root            | Bot API Root (https://api.telegram.org by default)                                                                     |
+| API_LOCAL           | api-local           | Allow providing files from the file system, useful when using a Local Bot API with the `--local` option (0 by default) |
+| CORS_ALLOWED_ORIGIN | cors-allowed-origin | CORS allowed origin ("*" by default)                                                                                   |
 
 The values from the command line arguments are loaded first. If there are no
 command line arguments, then the values are loaded from the environment

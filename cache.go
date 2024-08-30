@@ -8,46 +8,34 @@ import (
 )
 
 type Cache struct {
-	fileUniqueIdCache *ttlcache.Cache[string, string]
-	filePathCache     *ttlcache.Cache[string, string]
+	filePathCache *ttlcache.Cache[string, string]
 }
 
 func newCache() *Cache {
 	c := &Cache{
-		fileUniqueIdCache: ttlcache.New(
-			ttlcache.WithTTL[string, string](24*time.Hour),
-			ttlcache.WithCapacity[string, string](100_000),
-		),
 		filePathCache: ttlcache.New(
 			ttlcache.WithTTL[string, string](59*time.Minute),
 			ttlcache.WithCapacity[string, string](100_000),
 		),
 	}
 
-	// Start goroutines to clean up expired items
-	go c.fileUniqueIdCache.Start()
+	// Start a goroutine to clean up expired items
 	go c.filePathCache.Start()
 
 	return c
 }
 
-func (c *Cache) cacheFilePath(fileId, fileUniqueId, filePath string) {
-	c.fileUniqueIdCache.Set(fileId, fileUniqueId, ttlcache.DefaultTTL)
-	c.filePathCache.Set(fileUniqueId, filePath, ttlcache.DefaultTTL)
+func (c *Cache) cacheFilePath(fileId, filePath string) {
+	c.filePathCache.Set(fileId, filePath, ttlcache.DefaultTTL)
 }
 
 func (c *Cache) getFilePath(fileId string) (string, error) {
-	fileUniqueIdVal := c.fileUniqueIdCache.Get(fileId)
-	if fileUniqueIdVal != nil {
-		fileUniqueId := fileUniqueIdVal.Value()
-		filePathVal := c.filePathCache.Get(fileUniqueId)
+	filePathVal := c.filePathCache.Get(fileId)
 
-		if filePathVal != nil {
-			filePath := filePathVal.Value()
-
-			if len(filePath) != 0 {
-				return filePath, nil
-			}
+	if filePathVal != nil {
+		filePath := filePathVal.Value()
+		if len(filePath) != 0 {
+			return filePath, nil
 		}
 	}
 

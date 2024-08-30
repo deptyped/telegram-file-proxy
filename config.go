@@ -9,10 +9,11 @@ import (
 )
 
 type Config struct {
-	ApiRoot    string
-	BotToken   string
-	IsApiLocal bool
-	ServerAddr string
+	ApiRoot           string
+	BotToken          string
+	IsApiLocal        bool
+	ServerAddr        string
+	CorsAllowedOrigin string
 }
 
 func newConfig() *Config {
@@ -43,6 +44,7 @@ func loadConfigFromArgs() (*Config, bool) {
 	flag.BoolVar(&config.IsApiLocal, "api-local", false, "allow providing files from the file system")
 	flag.StringVar(&serverHost, "server-host", "", "server host")
 	flag.IntVar(&serverPort, "server-port", 8080, "server port")
+	flag.StringVar(&config.CorsAllowedOrigin, "cors-allowed-origin", "", "CORS allowed origin")
 
 	flag.Parse()
 
@@ -55,6 +57,7 @@ func loadConfigFromEnv() *Config {
 	config := &Config{}
 
 	config.BotToken = os.Getenv("BOT_TOKEN")
+	config.CorsAllowedOrigin = os.Getenv("CORS_ALLOWED_ORIGIN")
 
 	if apiRoot := os.Getenv("API_ROOT"); len(apiRoot) != 0 {
 		config.ApiRoot = apiRoot

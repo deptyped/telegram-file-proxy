@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 
-	router "github.com/julienschmidt/httprouter"
+	"github.com/rs/cors"
 )
 
 type File struct {
@@ -45,7 +46,7 @@ func modifyHeaders(headers *http.Header) {
 	headers.Set("Cache-Control", "public, max-age=31536000") // Cache for 1 year
 }
 
-func ServeFile(config *Config, cache *Cache) router.Handle {
+func ServeFile(config *Config, cache *Cache) http.HandlerFunc {
 	remote, err := url.Parse(config.ApiRoot)
 	if err != nil {
 		log.Fatalf("Invalid API root URL: %v", err)
@@ -57,8 +58,8 @@ func ServeFile(config *Config, cache *Cache) router.Handle {
 		return nil
 	}
 
-	return router.Handle(func(res http.ResponseWriter, req *http.Request, params router.Params) {
-		fileId := params.ByName("fileId")
+	return func(res http.ResponseWriter, req *http.Request) {
+		fileId := strings.TrimPrefix(req.URL.Path, "/")
 
 		filePath, err := cache.getFilePath(fileId)
 		if err != nil { // Cache miss, fetch from API
@@ -69,7 +70,7 @@ func ServeFile(config *Config, cache *Cache) router.Handle {
 				return
 			}
 
-			cache.cacheFilePath(fileId, fileInfo.Result.FileUniqueId, fileInfo.Result.FilePath)
+			cache.cacheFilePath(fileId, fileInfo.Result.FilePath)
 			filePath = fileInfo.Result.FilePath
 		}
 
@@ -82,16 +83,23 @@ func ServeFile(config *Config, cache *Cache) router.Handle {
 			req.Host = req.URL.Host
 			proxy.ServeHTTP(res, req)
 		}
-	})
+	}
 }
 
 func main() {
 	config := newConfig()
 	cache := newCache()
+	server := http.NewServeMux()
 
-	router := router.New()
-	router.GET("/:fileId", ServeFile(config, cache))
+	server.HandleFunc("/", ServeFile(config, cache))
+
+	c := cors.Default()
+	if config.CorsAllowedOrigin != "" {
+		c = cors.New(cors.Options{
+			AllowedOrigins: []string{config.CorsAllowedOrigin},
+		})
+	}
 
 	log.Printf("Server is running at %s\n", config.ServerAddr)
-	log.Fatal(http.ListenAndServe(config.ServerAddr, router))
+	log.Fatal(http.ListenAndServe(config.ServerAddr, c.Handler(server)))
 }
