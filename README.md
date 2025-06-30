@@ -4,14 +4,37 @@
 
 ### Introduction
 
-Using this proxy you can provide links to files to users by `file_id` without
-exposing the bot's token. Extremely useful for the WebApp feature to use files
-from Telegram in your web app.
+This proxy allows you to provide users with links to files by `file_id` without exposing your bot's token. This is especially useful for the Telegram Web Apps feature, as it enables you to use files from Telegram directly in your web app.
 
 To get a link to a file, simply pass `file_id` of the file as the path:
 
 ```bash
 http://telegram-file-proxy/<file_id>
+```
+
+#### Query Parameters
+
+You can also use query parameters to control response headers:
+
+- `content-type`: Sets the `Content-Type` header. The value must be one of the
+  pre-approved MIME types (e.g., `image/jpeg`, `video/mp4`, `application/pdf`).
+  If the value is not allowed, the header will be omitted.
+
+  ```bash
+  http://telegram-file-proxy/<file_id>?content-type=image/png
+  ```
+
+- `filename`: Sets the `filename` in the `Content-Disposition` header. This
+  suggests a name for the file when the user downloads it.
+
+  ```bash
+  http://telegram-file-proxy/<file_id>?filename=document.pdf
+  ```
+
+You can combine both parameters:
+
+```bash
+http://telegram-file-proxy/<file_id>?content-type=image/jpeg&filename=photo.jpg
 ```
 
 ### Usage
@@ -96,10 +119,7 @@ services:
 | SERVER_PORT         | server-port         | Server port (8080 by default)                                                                                          |
 | SERVER_HOST         | server-host         | Server hostname                                                                                                        |
 | API_ROOT            | api-root            | Bot API Root (https://api.telegram.org by default)                                                                     |
-| API_LOCAL           | api-local           | Allow providing files from the file system, useful when using a Local Bot API with the `--local` option (0 by default) |
+| API_LOCAL           | api-local           | Allows serving files from the local filesystem when using a Local Bot API server. Set to `1` to enable.             |
 | CORS_ALLOWED_ORIGIN | cors-allowed-origin | CORS allowed origin ("*" by default)                                                                                   |
 
-The values from the command line arguments are loaded first. If there are no
-command line arguments, then the values are loaded from the environment
-variables. **Important!** You cannot use environment variables and command line
-arguments at the same time to configure.
+Configuration is loaded in layers. Command-line flags take precedence over environment variables.

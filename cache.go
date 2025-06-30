@@ -30,14 +30,9 @@ func (c *Cache) cacheFilePath(fileId, filePath string) {
 }
 
 func (c *Cache) getFilePath(fileId string) (string, error) {
-	filePathVal := c.filePathCache.Get(fileId)
-
-	if filePathVal != nil {
-		filePath := filePathVal.Value()
-		if len(filePath) != 0 {
-			return filePath, nil
-		}
+	item := c.filePathCache.Get(fileId)
+	if item == nil || item.Value() == "" {
+		return "", errors.New("file path not found in cache")
 	}
-
-	return "", errors.New("no cached value")
+	return item.Value(), nil
 }
