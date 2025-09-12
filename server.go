@@ -114,6 +114,7 @@ func (s *Server) handleFileRequest(w http.ResponseWriter, r *http.Request) {
 		r.URL.Path = fmt.Sprintf("/file/bot%s/%s", s.config.BotToken, filePath)
 		r.RequestURI = ""
 		r.Host = r.URL.Host
+		r.Header = make(http.Header)
 		s.proxy.ServeHTTP(w, r)
 	}
 }
