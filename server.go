@@ -113,7 +113,16 @@ func (s *Server) handleFileRequest(w http.ResponseWriter, r *http.Request) {
 		r.RequestURI = ""
 		r.Host = r.URL.Host
 		r.Header = make(http.Header)
-		s.proxy.ServeHTTP(w, r)
+
+		proxy := *s.proxy
+		proxy.ModifyResponse = func(resp *http.Response) error {
+			if resp.StatusCode >= 400 {
+				log.Printf("Upstream returned status %d for file_id %s. Invalidating cache.", resp.StatusCode, fileId)
+				s.cache.invalidate(fileId)
+			}
+			return s.modifyProxyResponse(resp)
+		}
+		proxy.ServeHTTP(w, r)
 	}
 }
 
