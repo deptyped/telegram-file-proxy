@@ -41,6 +41,8 @@ func NewServer(config *Config, cache *Cache, telegram *Client) (*Server, error) 
 	return s, nil
 }
 
+// resolveFilePath resolves a file_id to a file_path, using cache when available.
+// On any error, the cache is automatically invalidated for this file_id.
 func (s *Server) resolveFilePath(fileId string) (string, error) {
 	// Try cache first
 	if filePath, err := s.cache.getFilePath(fileId); err == nil {
@@ -48,20 +50,16 @@ func (s *Server) resolveFilePath(fileId string) (string, error) {
 	}
 
 	// Not in cache, fetch from Telegram API
-	fileInfo, err := s.telegram.GetFile(fileId)
+	filePath, err := s.telegram.GetFile(fileId)
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch file info: %w", err)
-	}
-	if !fileInfo.Ok {
-		return "", fmt.Errorf("telegram API error (%d): %s", fileInfo.ErrorCode, fileInfo.Description)
-	}
-	if fileInfo.Result.FilePath == "" {
-		return "", errors.New("telegram API returned an empty file path")
+		// Invalidate cache on any error (corrupted response, API error, empty path, etc.)
+		s.cache.invalidate(fileId)
+		return "", err
 	}
 
 	// Cache the new path and return it
-	s.cache.cacheFilePath(fileId, fileInfo.Result.FilePath)
-	return fileInfo.Result.FilePath, nil
+	s.cache.cacheFilePath(fileId, filePath)
+	return filePath, nil
 }
 
 var allowedMIMETypes = map[string]struct{}{

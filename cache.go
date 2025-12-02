@@ -36,3 +36,7 @@ func (c *Cache) getFilePath(fileId string) (string, error) {
 	}
 	return item.Value(), nil
 }
+
+func (c *Cache) invalidate(fileId string) {
+	c.filePathCache.Delete(fileId)
+}

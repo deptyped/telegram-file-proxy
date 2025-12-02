@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -32,19 +33,28 @@ func NewClient(apiRoot, botToken string) *Client {
 	}
 }
 
-// GetFile fetches file metadata from the Telegram API.
-func (c *Client) GetFile(fileId string) (*getFileResponse, error) {
+// GetFile fetches file path from the Telegram API for the given file_id.
+// Returns an error if the request fails, the response is invalid, or the API returns an error.
+func (c *Client) GetFile(fileId string) (string, error) {
 	url := fmt.Sprintf("%s/bot%s/getFile?file_id=%s", c.apiRoot, c.botToken, fileId)
 	resp, err := c.client.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute request to telegram: %w", err)
+		return "", fmt.Errorf("failed to execute request to telegram: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var fileInfo getFileResponse
 	if err := json.NewDecoder(resp.Body).Decode(&fileInfo); err != nil {
-		return nil, fmt.Errorf("failed to decode telegram response: %w", err)
+		return "", fmt.Errorf("failed to decode telegram response: %w", err)
 	}
 
-	return &fileInfo, nil
+	if !fileInfo.Ok {
+		return "", fmt.Errorf("telegram API error (%d): %s", fileInfo.ErrorCode, fileInfo.Description)
+	}
+
+	if fileInfo.Result.FilePath == "" {
+		return "", errors.New("telegram API returned an empty file path")
+	}
+
+	return fileInfo.Result.FilePath, nil
 }
